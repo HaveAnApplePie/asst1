@@ -35,7 +35,45 @@ void workerThreadStart(WorkerArgs * const args) {
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
 
-    printf("Hello world from thread %d\n", args->threadId);
+//     block parallel fractal
+//     int id = args->threadId;
+//     int num = args->numThreads;
+//     int single = args->height/num;
+//     int startRow = id*single;
+//     int totalRows = id == num-1 ? args->height-(num-1)*single : single;
+
+//    //printf("thread %d startRow: %d totalRows: %d\n",id,startRow,totalRows);
+//     double minTime = 1e30;
+//     double startTime = CycleTimer::currentSeconds();
+//     mandelbrotSerial(args->x0,args->y0,args->x1,args->y1,args->width,args->height,
+//     startRow,totalRows,args->maxIterations,args->output);
+//     double endTime = CycleTimer::currentSeconds();
+//     minTime = endTime - startTime;
+
+//     printf("[thread %d]:\t\t[%.3f] ms\n", id,minTime * 1000);
+
+    // line parallel
+    int id = args->threadId;
+    int num = args->numThreads;
+    int height = args->height;
+    int n = 1;
+    for(int i = id*n; i < height; i += num*n){
+        //printf("%d\n", i);
+        mandelbrotSerial(args->x0,args->y0,args->x1,args->y1,args->width,args->height,
+        i,n,args->maxIterations,args->output);           
+        
+        // if(i+n < height){
+        //     mandelbrotSerial(args->x0,args->y0,args->x1,args->y1,args->width,args->height,
+        //     i,n,args->maxIterations,args->output);   
+        // }
+        // else{
+        //     mandelbrotSerial(args->x0,args->y0,args->x1,args->y1,args->width,args->height,
+        //     i,height-i,args->maxIterations,args->output);              
+        // }
+     
+    }
+
+    //printf("Hello world from thread %d\n", args->threadId);
 }
 
 //
@@ -49,7 +87,7 @@ void mandelbrotThread(
     int width, int height,
     int maxIterations, int output[])
 {
-    static constexpr int MAX_THREADS = 32;
+    static constexpr int MAX_THREADS = 40;
 
     if (numThreads > MAX_THREADS)
     {
@@ -79,6 +117,7 @@ void mandelbrotThread(
         args[i].threadId = i;
     }
 
+    //printf("picture height: %d\n", args[0].height);
     // Spawn the worker threads.  Note that only numThreads-1 std::threads
     // are created and the main application thread is used as a worker
     // as well.
