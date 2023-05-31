@@ -250,6 +250,75 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
   
+  __cs149_vec_float x;
+  __cs149_vec_int y;
+  __cs149_vec_float result;
+  __cs149_vec_int zero = _cs149_vset_int(0);
+  __cs149_vec_int ones = _cs149_vset_int(1);
+  __cs149_vec_float threshold = _cs149_vset_float(9.999999f);
+  __cs149_vec_int count;
+  __cs149_mask maskAll,maskIsZero,maskIsNotZero;
+  __cs149_mask maskRemainCount,maskIsPositive,maskOverthresh;
+
+  for(int i = 0; i < N; i+=VECTOR_WIDTH){
+    if(i+VECTOR_WIDTH < N)maskAll = _cs149_init_ones();
+    else maskAll = _cs149_init_ones(N-i);
+    maskIsZero = _cs149_init_ones(0);
+    maskIsPositive = _cs149_init_ones(0);
+    maskOverthresh = _cs149_init_ones(0);
+
+    //Load values
+    _cs149_vload_float(x, values+i, maskAll);
+    _cs149_vload_int(y,exponents+i,maskAll);
+
+    //if y == 0
+    _cs149_veq_int(maskIsZero,y,zero,maskAll);
+    // char userlog[VECTOR_WIDTH];
+    // for(int j = 0; j < VECTOR_WIDTH; j++){
+    //   if(maskIsZero.value[j]) userlog[j] = '1';
+    //   else userlog[j] = '0';
+    // }
+    // addUserLog(userlog);
+
+    //output[i] = 1.f
+    _cs149_vset_float(result,1.f,maskIsZero);
+
+    //else
+    maskIsNotZero = _cs149_mask_not(maskIsZero);
+
+    //float result = x;
+    _cs149_vmove_float(result,x,maskIsNotZero);
+
+    //int count = y - 1;
+    _cs149_vsub_int(count,y,ones,maskIsNotZero);
+    _cs149_vgt_int(maskIsPositive,count,zero,maskIsNotZero);
+
+
+    // while (count > 0) {
+    //   result *= x;
+    //   count--;
+    // }
+    while(_cs149_cntbits(maskIsPositive)){
+      _cs149_vmult_float(result,result,x,maskIsPositive);
+      _cs149_vsub_int(count,count,ones,maskIsPositive);
+      _cs149_vgt_int(maskIsPositive,count,zero,maskIsPositive);
+    }
+
+    //if (result > 9.999999f)
+    _cs149_vgt_float(maskOverthresh,result,threshold,maskIsNotZero);
+
+    //result = 9.999999f;
+    _cs149_vset_float(result,9.999999f,maskOverthresh);
+
+    //output[i] = result;
+    _cs149_vstore_float(output+i,result,maskAll);
+
+  }
+
+
+
+
+
 }
 
 // returns the sum of all elements in values
